@@ -47,12 +47,13 @@ struct streaming_query_regular_parsing {
 
     inline void start() { m_start = true; }
 
-    lookup_result lookup_advanced(const char* kmer) {
+    bool is_member(const char* kmer) {
         /* 1. validation */
         bool is_valid = m_start ? util::is_valid(kmer, m_k) : util::is_valid(kmer[m_k - 1]);
         if (!is_valid) {
             m_start = true;
-            return lookup_result();
+            m_res = false;
+            return m_res;
         }
 
         /* 2. compute kmer and minimizer */
@@ -74,8 +75,9 @@ struct streaming_query_regular_parsing {
                                          (same_minimizer_rc() and m_minimizer_rc_not_found);
         if (both_minimizers_not_found) {
             update_state();
-            assert(equal_lookup_result(m_dict->lookup_advanced(kmer), m_res));
-            return lookup_result();
+            m_res = false;
+            assert(m_dict->is_member(kmer) == m_res);
+            return m_res;
         }
 
         /* 3. compute result */
@@ -89,7 +91,7 @@ struct streaming_query_regular_parsing {
                     }
                 }
             } else {
-                m_res = lookup_result();
+                m_res = false;
             }
         } else {
             if (same_minimizer()) {
@@ -101,7 +103,7 @@ struct streaming_query_regular_parsing {
                     }
                 }
             } else {
-                m_res = lookup_result();
+                m_res = false;
             }
         }
         if (!found()) {
@@ -121,7 +123,7 @@ struct streaming_query_regular_parsing {
         /* 4. update state */
         update_state();
 
-        assert(equal_lookup_result(m_dict->lookup_advanced(kmer), m_res));
+        assert(m_dict->is_member(kmer) == m_res);
         return m_res;
     }
 
@@ -132,7 +134,7 @@ private:
     dictionary const* m_dict;
 
     /* result */
-    lookup_result m_res;
+    bool m_res;
 
     /* (kmer,minimizer) state */
     minimizer_enumerator<> m_minimizer_enum;
@@ -162,7 +164,7 @@ private:
         m_start = false;
     }
 
-    inline bool found() { return m_res.kmer_id != constants::invalid_uint64; }
+    inline bool found() { return m_res; }
     inline bool same_minimizer() const { return m_curr_minimizer == m_prev_minimizer; }
     inline bool same_minimizer_rc() const { return m_curr_minimizer_rc == m_prev_minimizer_rc; }
 
@@ -186,7 +188,7 @@ private:
                     lookup_advanced(m_begin + p, m_begin + p + 1, check_minimizer);
                     if (found()) return;
                 }
-                m_res = lookup_result();
+                m_res = false;
                 return;
             }
         }
@@ -204,7 +206,7 @@ private:
                     lookup_advanced_rc(m_begin + p, m_begin + p + 1, check_minimizer);
                     if (found()) return;
                 }
-                m_res = lookup_result();
+                m_res = false;
                 return;
             }
         }
@@ -217,10 +219,10 @@ private:
             uint64_t pos_in_string = 2 * offset;
             m_reverse = false;
             m_string_iterator.at(pos_in_string);
-            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id(offset, m_k);
-            m_res = res;
+            uint64_t contig_end = (m_dict->m_buckets).offset_to_contig_end(offset);
+            m_res = true;
             m_pos_in_window = 0;
-            m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
+            m_window_size = std::min<uint64_t>(m_k - m_m + 1, contig_end - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
                 uint64_t val = m_string_iterator.read(2 * m_k);
@@ -229,28 +231,23 @@ private:
                     uint64_t minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
                     if (minimizer != m_curr_minimizer) {
                         m_minimizer_not_found = true;
-                        m_res = lookup_result();
+                        m_res = false;
                         return;
                     }
                 }
 
                 m_string_iterator.eat(2);
                 m_pos_in_window += 1;
-                pos_in_string += 2;
                 assert(m_pos_in_window <= m_window_size);
 
                 if (m_kmer == val) {
                     m_num_searches += 1;
-                    m_res.kmer_orientation = constants::forward_orientation;
                     return;
                 }
-
-                m_res.kmer_id += 1;
-                m_res.kmer_id_in_contig += 1;
             }
         }
 
-        m_res = lookup_result();
+        m_res = false;
     }
 
     void lookup_advanced_rc(uint64_t begin, uint64_t end, bool check_minimizer) {
@@ -259,10 +256,10 @@ private:
             uint64_t pos_in_string = 2 * offset;
             m_reverse = false;
             m_string_iterator.at(pos_in_string);
-            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id(offset, m_k);
-            m_res = res;
+            uint64_t contig_end = (m_dict->m_buckets).offset_to_contig_end(offset);
+            m_res = true;
             m_pos_in_window = 0;
-            m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
+            m_window_size = std::min<uint64_t>(m_k - m_m + 1, contig_end - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
                 uint64_t val = m_string_iterator.read(2 * m_k);
@@ -271,7 +268,7 @@ private:
                     uint64_t minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
                     if (minimizer != m_curr_minimizer_rc) {
                         m_minimizer_rc_not_found = true;
-                        m_res = lookup_result();
+                        m_res = false;
                         return;
                     }
                 }
@@ -286,25 +283,18 @@ private:
                     pos_in_string -= 2;
                     m_num_searches += 1;
                     m_string_iterator.at(pos_in_string + 2 * (m_k - 1));
-                    m_res.kmer_orientation = constants::backward_orientation;
                     return;
                 }
-
-                m_res.kmer_id += 1;
-                m_res.kmer_id_in_contig += 1;
             }
         }
 
-        m_res = lookup_result();
+        m_res = false;
     }
 
     inline void extend() {
         m_string_iterator.eat(2);
         m_pos_in_window += 1;
         assert(m_pos_in_window <= m_window_size);
-        assert(m_res.kmer_orientation == constants::forward_orientation);
-        m_res.kmer_id += 1;
-        m_res.kmer_id_in_contig += 1;
     }
 
     inline void extend_rc() {
@@ -312,9 +302,6 @@ private:
         m_string_iterator.eat_reverse(2);
         m_pos_in_window -= 1;
         assert(m_pos_in_window >= 1);
-        assert(m_res.kmer_orientation == constants::backward_orientation);
-        m_res.kmer_id -= 1;
-        m_res.kmer_id_in_contig -= 1;
     }
 
     inline bool extends() {
