@@ -85,19 +85,6 @@ struct ef_sequence {
                m_low_bits.access(i);
     }
 
-    // inline uint64_t diff(uint64_t i) const {
-    //     assert(i < size() && encode_prefix_sum);
-    //     uint64_t low1 = m_low_bits.access(i);
-    //     uint64_t low2 = m_low_bits.access(i + 1);
-    //     uint64_t l = m_low_bits.width();
-    //     uint64_t pos = m_high_bits_d1.select(m_high_bits, i);
-    //     uint64_t h1 = pos - i;
-    //     uint64_t h2 = bit_vector::unary_iterator(m_high_bits, pos + 1).next() - i - 1;
-    //     uint64_t val1 = (h1 << l) | low1;
-    //     uint64_t val2 = (h2 << l) | low2;
-    //     return val2 - val1;
-    // }
-
     // Return [position,value] of the rightmost smallest element >= x.
     // Return [size(),back()] if x > back() (largest element).
     inline std::pair<uint64_t, uint64_t> next_geq(uint64_t x) const {
@@ -138,44 +125,6 @@ struct ef_sequence {
         }
 
         return {pos, val};
-    }
-
-    // Return [pos_next,prev,next] such that prev < x <= next.
-    // where pos_next is the position of next.
-    // Assumptions:
-    // - all elements of the sequence are distinct;
-    // - x <= back();
-    // - first element of the sequence is 0.
-    // Because of these assumption, this is specific for our use-case, NOT for generic use.
-    inline std::tuple<uint64_t, uint64_t, uint64_t> locate(uint64_t x) const {
-        static_assert(index_zeros == true, "must build index on zeros");
-        assert(m_high_bits_d0.num_positions());
-
-        if (x == 0) return {0, 0, 0};
-
-        uint64_t h_x = x >> m_low_bits.width();
-        uint64_t begin = h_x ? m_high_bits_d0.select(m_high_bits, h_x - 1) - h_x + 1 : 0;
-        assert(begin < size());
-
-        auto it = at(begin);
-        uint64_t pos_next = begin;
-        uint64_t next = it.next();
-        uint64_t prev = next;
-        while (next < x) {
-            ++pos_next;
-            prev = next;
-            next = it.next();
-        }
-        assert(next >= x);
-        assert(pos_next > 0);
-        return {pos_next, pos_next != begin ? prev : access(pos_next - 1), next};
-    }
-
-    // Return the position of the rightmost largest element <= x.
-    // Return size() if x > back() (largest element).
-    inline uint64_t prev_leq(uint64_t x) const {
-        auto [pos, val] = next_geq(x);
-        return pos - (val > x);
     }
 
     inline uint64_t back() const { return m_universe; }

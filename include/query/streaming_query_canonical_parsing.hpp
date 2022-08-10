@@ -41,12 +41,13 @@ struct streaming_query_canonical_parsing {
 
     inline void start() { m_start = true; }
 
-    lookup_result lookup_advanced(const char* kmer) {
+    bool is_member(const char* kmer) {
         /* 1. validation */
         bool is_valid = m_start ? util::is_valid(kmer, m_k) : util::is_valid(kmer[m_k - 1]);
         if (!is_valid) {
             m_start = true;
-            return lookup_result();
+            m_res = false;
+            return m_res;
         }
 
         /* 2. compute kmer and minimizer */
@@ -88,7 +89,7 @@ struct streaming_query_canonical_parsing {
         m_prev_minimizer = m_curr_minimizer;
         m_start = false;
 
-        assert(equal_lookup_result(m_dict->lookup_advanced(kmer), m_res));
+        assert(m_dict->is_member(kmer) == m_res);
         return m_res;
     }
 
@@ -99,7 +100,7 @@ private:
     dictionary const* m_dict;
 
     /* result */
-    lookup_result m_res;
+    bool m_res;
 
     /* (kmer,minimizer) state */
     minimizer_enumerator<> m_minimizer_enum;
@@ -138,15 +139,15 @@ private:
                 uint64_t p = m_dict->m_skew_index.lookup(m_kmer, log2_bucket_size);
                 if (p < num_super_kmers_in_bucket) {
                     lookup_advanced(m_begin + p, m_begin + p + 1, check_minimizer);
-                    if (m_res.kmer_id != constants::invalid_uint64) return;
+                    if (m_res) return;
                     check_minimizer = false;
                 }
                 uint64_t p_rc = m_dict->m_skew_index.lookup(m_kmer_rc, log2_bucket_size);
                 if (p_rc < num_super_kmers_in_bucket) {
                     lookup_advanced(m_begin + p_rc, m_begin + p_rc + 1, check_minimizer);
-                    if (m_res.kmer_id != constants::invalid_uint64) return;
+                    if (m_res) return;
                 }
-                m_res = lookup_result();
+                m_res = false;
                 return;
             }
         }
@@ -159,10 +160,10 @@ private:
             uint64_t pos_in_string = 2 * offset;
             m_reverse = false;
             m_string_iterator.at(pos_in_string);
-            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id(offset, m_k);
-            m_res = res;
+            uint64_t contig_end = (m_dict->m_buckets).offset_to_contig_end(offset);
+            m_res = true;
             m_pos_in_window = 0;
-            m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
+            m_window_size = std::min<uint64_t>(m_k - m_m + 1, contig_end - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
                 uint64_t val = m_string_iterator.read(2 * m_k);
@@ -174,7 +175,7 @@ private:
                                            util::compute_minimizer(val_rc, m_k, m_m, m_seed));
                     if (minimizer != m_curr_minimizer) {
                         m_minimizer_not_found = true;
-                        m_res = lookup_result();
+                        m_res = false;
                         return;
                     }
                 }
@@ -186,7 +187,6 @@ private:
 
                 if (m_kmer == val) {
                     m_num_searches += 1;
-                    m_res.kmer_orientation = constants::forward_orientation;
                     return;
                 }
 
@@ -195,16 +195,12 @@ private:
                     pos_in_string -= 2;
                     m_num_searches += 1;
                     m_string_iterator.at(pos_in_string + 2 * (m_k - 1));
-                    m_res.kmer_orientation = constants::backward_orientation;
                     return;
                 }
-
-                m_res.kmer_id += 1;
-                m_res.kmer_id_in_contig += 1;
             }
         }
 
-        m_res = lookup_result();
+        m_res = false;
     }
 
     inline void extend() {
@@ -212,16 +208,10 @@ private:
             m_string_iterator.eat_reverse(2);
             m_pos_in_window -= 1;
             assert(m_pos_in_window >= 1);
-            assert(m_res.kmer_orientation == constants::backward_orientation);
-            m_res.kmer_id -= 1;
-            m_res.kmer_id_in_contig -= 1;
         } else {
             m_string_iterator.eat(2);
             m_pos_in_window += 1;
             assert(m_pos_in_window <= m_window_size);
-            assert(m_res.kmer_orientation == constants::forward_orientation);
-            m_res.kmer_id += 1;
-            m_res.kmer_id_in_contig += 1;
         }
     }
 

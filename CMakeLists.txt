@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(SSHASH)
+project(SSHASH-LITE)
 
 set(CMAKE_CXX_STANDARD 17)
 if (NOT CMAKE_BUILD_TYPE)
@@ -42,7 +42,7 @@ set(SSHASH_SOURCES
 )
 
 # Create a static lib
-add_library(sshash_static STATIC
+add_library(sshashlite_static STATIC
   ${Z_LIB_SOURCES}
   ${SSHASH_SOURCES}
   include/builder/build.cpp
@@ -51,7 +51,7 @@ add_library(sshash_static STATIC
 # build with the lib
 add_executable(build src/build.cpp)
 target_link_libraries(build
-  sshash_static
+  sshashlite_static
   z
 )
 

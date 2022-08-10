@@ -5,7 +5,7 @@
 
 #include "../gz/zip_stream.hpp"
 #include "streaming_query_canonical_parsing.hpp"
-#include "streaming_query_regular_parsing.hpp"
+// #include "streaming_query_regular_parsing.hpp"
 
 namespace sshash {
 
@@ -22,9 +22,9 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary cons
         bool empty_line_was_read = it.fill_buffer(buffer);
         for (uint64_t i = 0; i != buffer.size() - k + 1; ++i) {
             char const* kmer = buffer.data() + i;
-            auto answer = query.lookup_advanced(kmer);
+            bool answer = query.is_member(kmer);
             report.num_kmers += 1;
-            report.num_positive_kmers += answer.kmer_id != constants::invalid_uint64;
+            report.num_positive_kmers += answer;
         }
         if (empty_line_was_read) { /* re-start the kmers' buffer */
             buffer.clear();
@@ -55,9 +55,9 @@ streaming_query_report streaming_query_from_fasta_file(dictionary const* dict, s
         if (line.size() < k) continue;
         for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
             char const* kmer = line.data() + i;
-            auto answer = query.lookup_advanced(kmer);
+            bool answer = query.is_member(kmer);
             report.num_kmers += 1;
-            report.num_positive_kmers += answer.kmer_id != constants::invalid_uint64;
+            report.num_positive_kmers += answer;
         }
     }
     report.num_searches = query.num_searches();
@@ -79,9 +79,9 @@ streaming_query_report streaming_query_from_fastq_file(dictionary const* dict, s
         if (line.size() >= k) {
             for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
                 char const* kmer = line.data() + i;
-                auto answer = query.lookup_advanced(kmer);
+                bool answer = query.is_member(kmer);
                 report.num_kmers += 1;
-                report.num_positive_kmers += answer.kmer_id != constants::invalid_uint64;
+                report.num_positive_kmers += answer;
             }
         }
         std::getline(is, line);  // skip '+'
@@ -112,8 +112,8 @@ streaming_query_report dictionary::streaming_query_from_file(std::string const& 
             report = streaming_query_from_fasta_file<streaming_query_canonical_parsing>(this, zis,
                                                                                         multiline);
         } else {
-            report = streaming_query_from_fasta_file<streaming_query_regular_parsing>(this, zis,
-                                                                                      multiline);
+            // report = streaming_query_from_fasta_file<streaming_query_regular_parsing>(this, zis,
+            //                                                                           multiline);
         }
 
     } else if (util::ends_with(filename, ".fq.gz") or util::ends_with(filename, ".fastq.gz")) {
@@ -126,7 +126,7 @@ streaming_query_report dictionary::streaming_query_from_file(std::string const& 
         if (canonicalized()) {
             report = streaming_query_from_fastq_file<streaming_query_canonical_parsing>(this, zis);
         } else {
-            report = streaming_query_from_fastq_file<streaming_query_regular_parsing>(this, zis);
+            // report = streaming_query_from_fastq_file<streaming_query_regular_parsing>(this, zis);
         }
 
     } else if (util::ends_with(filename, ".fa") or util::ends_with(filename, ".fasta")) {
@@ -134,8 +134,8 @@ streaming_query_report dictionary::streaming_query_from_file(std::string const& 
             report = streaming_query_from_fasta_file<streaming_query_canonical_parsing>(this, is,
                                                                                         multiline);
         } else {
-            report = streaming_query_from_fasta_file<streaming_query_regular_parsing>(this, is,
-                                                                                      multiline);
+            // report = streaming_query_from_fasta_file<streaming_query_regular_parsing>(this, is,
+            //                                                                           multiline);
         }
 
     } else if (util::ends_with(filename, ".fq") or util::ends_with(filename, ".fastq")) {
@@ -146,7 +146,7 @@ streaming_query_report dictionary::streaming_query_from_file(std::string const& 
         if (canonicalized()) {
             report = streaming_query_from_fastq_file<streaming_query_canonical_parsing>(this, is);
         } else {
-            report = streaming_query_from_fastq_file<streaming_query_regular_parsing>(this, is);
+            // report = streaming_query_from_fastq_file<streaming_query_regular_parsing>(this, is);
         }
     }
 

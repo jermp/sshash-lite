@@ -19,8 +19,6 @@ constexpr double c = 3.0;  // for PTHash
 constexpr uint64_t min_l = 6;
 constexpr uint64_t max_l = 12;
 static const std::string default_tmp_dirname(".");
-constexpr bool forward_orientation = 0;
-constexpr bool backward_orientation = 1;
 }  // namespace constants
 
 typedef pthash::murmurhash2_64 base_hasher_type;
@@ -40,63 +38,6 @@ struct streaming_query_report {
     uint64_t num_extensions;
 };
 
-struct lookup_result {
-    lookup_result()
-        : kmer_id(constants::invalid_uint64)
-        , kmer_id_in_contig(constants::invalid_uint32)
-        , kmer_orientation(constants::forward_orientation)
-        , contig_id(constants::invalid_uint32)
-        , contig_size(constants::invalid_uint32) {}
-    uint64_t kmer_id;            // "absolute" kmer-id
-    uint32_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
-    uint32_t kmer_orientation;
-    uint32_t contig_id;
-    uint32_t contig_size;
-};
-
-struct neighbourhood {
-    /* forward */
-    lookup_result forward_A;
-    lookup_result forward_C;
-    lookup_result forward_G;
-    lookup_result forward_T;
-    /* backward */
-    lookup_result backward_A;
-    lookup_result backward_C;
-    lookup_result backward_G;
-    lookup_result backward_T;
-};
-
-[[maybe_unused]] static bool equal_lookup_result(lookup_result expected, lookup_result got) {
-    if (expected.kmer_id != got.kmer_id) {
-        std::cout << "expected kmer_id " << expected.kmer_id << " but got " << got.kmer_id
-                  << std::endl;
-        return false;
-    }
-    if (expected.kmer_id_in_contig != got.kmer_id_in_contig) {
-        std::cout << "expected kmer_id_in_contig " << expected.kmer_id_in_contig << " but got "
-                  << got.kmer_id_in_contig << std::endl;
-        return false;
-    }
-    if (got.kmer_id != constants::invalid_uint64 and
-        expected.kmer_orientation != got.kmer_orientation) {
-        std::cout << "expected kmer_orientation " << expected.kmer_orientation << " but got "
-                  << got.kmer_orientation << std::endl;
-        return false;
-    }
-    if (expected.contig_id != got.contig_id) {
-        std::cout << "expected contig_id " << expected.contig_id << " but got " << got.contig_id
-                  << std::endl;
-        return false;
-    }
-    if (expected.contig_size != got.contig_size) {
-        std::cout << "expected contig_size " << expected.contig_size << " but got "
-                  << got.contig_size << std::endl;
-        return false;
-    }
-    return true;
-}
-
 struct build_configuration {
     build_configuration()
         : k(31)
@@ -107,7 +48,6 @@ struct build_configuration {
         , c(constants::c)
 
         , canonical_parsing(false)
-        , weighted(false)
         , verbose(true)
 
         , tmp_dirname(constants::default_tmp_dirname) {}
@@ -120,7 +60,6 @@ struct build_configuration {
     double c;    // drive PTHash trade-off
 
     bool canonical_parsing;
-    bool weighted;
     bool verbose;
 
     std::string tmp_dirname;
@@ -129,7 +68,7 @@ struct build_configuration {
         std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
                   << ", c = " << c
                   << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << ", weighted = " << (weighted ? "true" : "false") << std::endl;
+                  << std::endl;
     }
 };
 
@@ -299,15 +238,6 @@ static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1
     return std::equal(pattern.begin(), pattern.end(), str.end() - pattern.size());
 }
 
-// for a sorted list of size n whose universe is u
-[[maybe_unused]] static uint64_t elias_fano_bitsize(uint64_t n, uint64_t u) {
-    // return n * ((u > n ? (std::ceil(std::log2(static_cast<double>(u) / n))) : 0) + 2);
-    uint64_t l = uint64_t((n && u / n) ? pthash::util::msb(u / n) : 0);
-    uint64_t high_bits = n + (u >> l) + 1;
-    uint64_t low_bits = n * l;
-    return high_bits + low_bits;
-}
-
 /*
 char decimal  binary
  A     65     01000-00-1 -> 00
@@ -322,38 +252,6 @@ static char uint64_to_char(uint64_t x) {
     static char nucleotides[4] = {'A', 'C', 'T', 'G'};
     return nucleotides[x];
 }
-
-/*
-    Traditional mapping.
-*/
-// uint64_t char_to_uint64(char c) {
-//     switch (c) {
-//         case 'A':
-//             return 0;
-//         case 'C':
-//             return 1;
-//         case 'G':
-//             return 2;
-//         case 'T':
-//             return 3;
-//     }
-//     assert(false);
-//     return -1;
-// }
-// char uint64_to_char(uint64_t x) {
-//     switch (x) {
-//         case 0:
-//             return 'A';
-//         case 1:
-//             return 'C';
-//         case 2:
-//             return 'G';
-//         case 3:
-//             return 'T';
-//     }
-//     assert(false);
-//     return 0;
-// }
 
 /****************************************************************************
     The following two functions preserves the lexicographic order of k-mers,
@@ -477,23 +375,7 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
     return true;
 }
 
-// struct byte_range {
-//     char const* begin;
-//     char const* end;
-// };
-
 struct murmurhash2_64 {
-    // generic range of bytes
-    // static inline uint64_t hash(byte_range range, uint64_t seed) {
-    //     return pthash::MurmurHash2_64(range.begin, range.end - range.begin, seed);
-    // }
-
-    // // specialization for std::string
-    // static inline uint64_t hash(std::string const& val, uint64_t seed) {
-    //     return MurmurHash2_64(val.data(), val.size(), seed);
-    // }
-
-    // specialization for uint64_t
     static inline uint64_t hash(uint64_t val, uint64_t seed) {
         return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&val), sizeof(val), seed);
     }
@@ -633,7 +515,6 @@ struct buffered_lines_iterator {
     }
 
     bool eof() const { return m_is.eof(); }
-
     uint64_t read_chars() const { return m_read_chars; }
 
 private:
