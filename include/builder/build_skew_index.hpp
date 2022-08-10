@@ -4,6 +4,23 @@
 
 namespace sshash {
 
+#pragma pack(push, 4)
+struct key {
+    uint64_t kmer;
+    uint32_t super_kmer_id;
+};
+#pragma pack(pop)
+
+struct key_iterator : std::random_access_iterator_tag {
+    key_iterator(std::vector<key>::iterator it) : m_it(it) {}
+    uint64_t operator*() const { return (*m_it).kmer; }
+    void operator++() { m_it++; }
+    key_iterator operator+(uint64_t offset) const { return key_iterator(m_it + offset); }
+
+private:
+    std::vector<key>::iterator m_it;
+};
+
 void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const& m_buckets,
                       build_configuration const& build_config,
                       buckets_statistics const& buckets_stats) {
@@ -144,12 +161,9 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         uint64_t num_bits_per_pos = min_log2_size + 1;
 
         /* tmp storage for keys and super_kmer_ids ******/
-        std::vector<uint64_t> keys_in_partition;
-        std::vector<uint32_t> super_kmer_ids_in_partition;
+        std::vector<key> keys_in_partition;
         keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
-        super_kmer_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
         pthash::compact_vector::builder cvb_positions;
-        cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
         /*******/
 
         for (uint64_t i = 0; i != lists.size() + 1; ++i) {
@@ -159,18 +173,23 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
 
                 auto& mphf = m_skew_index.mphfs[partition_id];
                 assert(num_kmers_in_partition[partition_id] == keys_in_partition.size());
-                assert(num_kmers_in_partition[partition_id] == super_kmer_ids_in_partition.size());
-                mphf.build_in_internal_memory(keys_in_partition.begin(), keys_in_partition.size(),
+
+                std::sort(keys_in_partition.begin(), keys_in_partition.end(),
+                          [](key const& x, key const& y) { return x.kmer < y.kmer; });
+                auto it = std::unique(keys_in_partition.begin(), keys_in_partition.end(),
+                                      [](key const& x, key const& y) { return x.kmer == y.kmer; });
+                uint64_t num_keys = std::distance(keys_in_partition.begin(), it);
+                mphf.build_in_internal_memory(key_iterator(keys_in_partition.begin()), num_keys,
                                               mphf_config);
 
-                std::cout << "  built mphs[" << partition_id << "] for " << keys_in_partition.size()
+                std::cout << "  built mphs[" << partition_id << "] for " << num_keys
                           << " keys; bits/key = "
                           << static_cast<double>(mphf.num_bits()) / mphf.num_keys() << std::endl;
 
-                for (uint64_t i = 0; i != keys_in_partition.size(); ++i) {
-                    uint64_t kmer = keys_in_partition[i];
+                cvb_positions.resize(num_keys, num_bits_per_pos);
+                for (uint64_t i = 0; i != num_keys; ++i) {
+                    auto [kmer, super_kmer_id] = keys_in_partition[i];
                     uint64_t pos = mphf(kmer);
-                    uint32_t super_kmer_id = super_kmer_ids_in_partition[i];
                     cvb_positions.set(pos, super_kmer_id);
                 }
                 auto& positions = m_skew_index.positions[partition_id];
@@ -193,20 +212,16 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                 }
 
                 keys_in_partition.clear();
-                super_kmer_ids_in_partition.clear();
                 keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
-                super_kmer_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
-                cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
             }
 
             assert(lists[i].size() > lower and lists[i].size() <= upper);
-            uint64_t super_kmer_id = 0;
+            uint32_t super_kmer_id = 0;
             for (auto [offset, num_kmers_in_super_kmer] : lists[i]) {
                 bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
                 for (uint64_t i = 0; i != num_kmers_in_super_kmer; ++i) {
                     uint64_t kmer = bv_it.read(2 * build_config.k);
-                    keys_in_partition.push_back(kmer);
-                    super_kmer_ids_in_partition.push_back(super_kmer_id);
+                    keys_in_partition.push_back({kmer, super_kmer_id});
                     bv_it.eat(2);
                 }
                 assert(super_kmer_id < (1ULL << cvb_positions.width()));
