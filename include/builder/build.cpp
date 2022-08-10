@@ -45,24 +45,6 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     timer.reset();
     /******/
 
-    if (build_config.weighted) {
-        /* step 1.1: compress weights ***/
-        timer.start();
-        data.weights_builder.build(m_weights);
-        timer.stop();
-        timings.push_back(timer.elapsed());
-        print_time(timings.back(), data.num_kmers, "step 1.1.: 'build_weights'");
-        timer.reset();
-        /******/
-        if (build_config.verbose) {
-            double entropy_weights = data.weights_builder.print_info(data.num_kmers);
-            double avg_bits_per_weight = static_cast<double>(m_weights.num_bits()) / data.num_kmers;
-            std::cout << "weights: " << avg_bits_per_weight << " [bits/kmer]" << std::endl;
-            std::cout << "  (" << entropy_weights / avg_bits_per_weight
-                      << "x smaller than the empirical entropy)" << std::endl;
-        }
-    }
-
     /* step 2: merge minimizers and build MPHF ***/
     timer.start();
     data.minimizers.merge();

@@ -89,86 +89,81 @@ bool dictionary::is_member_uint64(uint64_t uint64_kmer, bool check_reverse_compl
     return lookup_uint64(uint64_kmer, check_reverse_complement_too) != constants::invalid_uint64;
 }
 
-void dictionary::access(uint64_t kmer_id, char* string_kmer) const {
-    assert(kmer_id < size());
-    m_buckets.access(kmer_id, string_kmer, m_k);
-}
+// void dictionary::access(uint64_t kmer_id, char* string_kmer) const {
+//     assert(kmer_id < size());
+//     m_buckets.access(kmer_id, string_kmer, m_k);
+// }
 
-uint64_t dictionary::weight(uint64_t kmer_id) const {
-    assert(kmer_id < size());
-    return m_weights.weight(kmer_id);
-}
+// uint64_t dictionary::contig_size(uint64_t contig_id) const {
+//     assert(contig_id < num_contigs());
+//     uint64_t contig_length = m_buckets.contig_length(contig_id);
+//     assert(contig_length >= m_k);
+//     return contig_length - m_k + 1;
+// }
 
-uint64_t dictionary::contig_size(uint64_t contig_id) const {
-    assert(contig_id < num_contigs());
-    uint64_t contig_length = m_buckets.contig_length(contig_id);
-    assert(contig_length >= m_k);
-    return contig_length - m_k + 1;
-}
+// void dictionary::forward_neighbours(uint64_t suffix, neighbourhood& res) const {
+//     res.forward_A = lookup_advanced_uint64(suffix + (util::char_to_uint64('A') << (2 * (m_k -
+//     1)))); res.forward_C = lookup_advanced_uint64(suffix + (util::char_to_uint64('C') << (2 *
+//     (m_k - 1)))); res.forward_G = lookup_advanced_uint64(suffix + (util::char_to_uint64('G') <<
+//     (2 * (m_k - 1)))); res.forward_T = lookup_advanced_uint64(suffix + (util::char_to_uint64('T')
+//     << (2 * (m_k - 1))));
+// }
+// void dictionary::backward_neighbours(uint64_t prefix, neighbourhood& res) const {
+//     res.backward_A = lookup_advanced_uint64(prefix + util::char_to_uint64('A'));
+//     res.backward_C = lookup_advanced_uint64(prefix + util::char_to_uint64('C'));
+//     res.backward_G = lookup_advanced_uint64(prefix + util::char_to_uint64('G'));
+//     res.backward_T = lookup_advanced_uint64(prefix + util::char_to_uint64('T'));
+// }
 
-void dictionary::forward_neighbours(uint64_t suffix, neighbourhood& res) const {
-    res.forward_A = lookup_advanced_uint64(suffix + (util::char_to_uint64('A') << (2 * (m_k - 1))));
-    res.forward_C = lookup_advanced_uint64(suffix + (util::char_to_uint64('C') << (2 * (m_k - 1))));
-    res.forward_G = lookup_advanced_uint64(suffix + (util::char_to_uint64('G') << (2 * (m_k - 1))));
-    res.forward_T = lookup_advanced_uint64(suffix + (util::char_to_uint64('T') << (2 * (m_k - 1))));
-}
-void dictionary::backward_neighbours(uint64_t prefix, neighbourhood& res) const {
-    res.backward_A = lookup_advanced_uint64(prefix + util::char_to_uint64('A'));
-    res.backward_C = lookup_advanced_uint64(prefix + util::char_to_uint64('C'));
-    res.backward_G = lookup_advanced_uint64(prefix + util::char_to_uint64('G'));
-    res.backward_T = lookup_advanced_uint64(prefix + util::char_to_uint64('T'));
-}
+// neighbourhood dictionary::kmer_forward_neighbours(char const* string_kmer) const {
+//     uint64_t uint64_kmer = util::string_to_uint64_no_reverse(string_kmer, m_k);
+//     return kmer_forward_neighbours(uint64_kmer);
+// }
+// neighbourhood dictionary::kmer_forward_neighbours(uint64_t uint64_kmer) const {
+//     neighbourhood res;
+//     uint64_t suffix = uint64_kmer >> 2;
+//     forward_neighbours(suffix, res);
+//     return res;
+// }
 
-neighbourhood dictionary::kmer_forward_neighbours(char const* string_kmer) const {
-    uint64_t uint64_kmer = util::string_to_uint64_no_reverse(string_kmer, m_k);
-    return kmer_forward_neighbours(uint64_kmer);
-}
-neighbourhood dictionary::kmer_forward_neighbours(uint64_t uint64_kmer) const {
-    neighbourhood res;
-    uint64_t suffix = uint64_kmer >> 2;
-    forward_neighbours(suffix, res);
-    return res;
-}
+// neighbourhood dictionary::kmer_backward_neighbours(char const* string_kmer) const {
+//     uint64_t uint64_kmer = util::string_to_uint64_no_reverse(string_kmer, m_k);
+//     return kmer_backward_neighbours(uint64_kmer);
+// }
+// neighbourhood dictionary::kmer_backward_neighbours(uint64_t uint64_kmer) const {
+//     neighbourhood res;
+//     uint64_t prefix = (uint64_kmer << 2) & ((uint64_t(1) << (2 * m_k)) - 1);
+//     backward_neighbours(prefix, res);
+//     return res;
+// }
 
-neighbourhood dictionary::kmer_backward_neighbours(char const* string_kmer) const {
-    uint64_t uint64_kmer = util::string_to_uint64_no_reverse(string_kmer, m_k);
-    return kmer_backward_neighbours(uint64_kmer);
-}
-neighbourhood dictionary::kmer_backward_neighbours(uint64_t uint64_kmer) const {
-    neighbourhood res;
-    uint64_t prefix = (uint64_kmer << 2) & ((uint64_t(1) << (2 * m_k)) - 1);
-    backward_neighbours(prefix, res);
-    return res;
-}
+// neighbourhood dictionary::kmer_neighbours(char const* string_kmer) const {
+//     uint64_t uint64_kmer = util::string_to_uint64_no_reverse(string_kmer, m_k);
+//     return kmer_neighbours(uint64_kmer);
+// }
+// neighbourhood dictionary::kmer_neighbours(uint64_t uint64_kmer) const {
+//     neighbourhood res;
+//     uint64_t suffix = uint64_kmer >> 2;
+//     forward_neighbours(suffix, res);
+//     uint64_t prefix = (uint64_kmer << 2) & ((uint64_t(1) << (2 * m_k)) - 1);
+//     backward_neighbours(prefix, res);
+//     return res;
+// }
 
-neighbourhood dictionary::kmer_neighbours(char const* string_kmer) const {
-    uint64_t uint64_kmer = util::string_to_uint64_no_reverse(string_kmer, m_k);
-    return kmer_neighbours(uint64_kmer);
-}
-neighbourhood dictionary::kmer_neighbours(uint64_t uint64_kmer) const {
-    neighbourhood res;
-    uint64_t suffix = uint64_kmer >> 2;
-    forward_neighbours(suffix, res);
-    uint64_t prefix = (uint64_kmer << 2) & ((uint64_t(1) << (2 * m_k)) - 1);
-    backward_neighbours(prefix, res);
-    return res;
-}
-
-neighbourhood dictionary::contig_neighbours(uint64_t contig_id) const {
-    assert(contig_id < num_contigs());
-    neighbourhood res;
-    uint64_t suffix = m_buckets.contig_suffix(contig_id, m_k);
-    forward_neighbours(suffix, res);
-    uint64_t prefix = m_buckets.contig_prefix(contig_id, m_k) << 2;
-    backward_neighbours(prefix, res);
-    return res;
-}
+// neighbourhood dictionary::contig_neighbours(uint64_t contig_id) const {
+//     assert(contig_id < num_contigs());
+//     neighbourhood res;
+//     uint64_t suffix = m_buckets.contig_suffix(contig_id, m_k);
+//     forward_neighbours(suffix, res);
+//     uint64_t prefix = m_buckets.contig_prefix(contig_id, m_k) << 2;
+//     backward_neighbours(prefix, res);
+//     return res;
+// }
 
 uint64_t dictionary::num_bits() const {
     return 8 * (sizeof(m_size) + sizeof(m_seed) + sizeof(m_k) + sizeof(m_m) +
                 sizeof(m_canonical_parsing)) +
-           m_minimizers.num_bits() + m_buckets.num_bits() + m_skew_index.num_bits() +
-           m_weights.num_bits();
+           m_minimizers.num_bits() + m_buckets.num_bits() + m_skew_index.num_bits();
 }
 
 }  // namespace sshash

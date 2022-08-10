@@ -2,7 +2,6 @@
 
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/dictionary.hpp"
-#include "bench_utils.hpp"
 #include "check_utils.hpp"
 
 using namespace sshash;
@@ -12,10 +11,11 @@ int main(int argc, char** argv) {
 
     /* mandatory arguments */
     parser.add("input_filename",
-               "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
-               "\t- without duplicate nor invalid kmers\n"
-               "\t- one DNA sequence per line.\n"
-               "\tFor example, it could be the de Bruijn graph topology output by BCALM.");
+               "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not\n"
+               "\twith one DNA sequence per line.\n"
+               "\tFor example, it could be the de Bruijn graph topology output by BCALM (without "
+               "duplicates)\n"
+               "\tof matchtigs (with duplicates).");
     parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").");
     parser.add("m", "Minimizer length (must be < k).");
 
@@ -45,9 +45,7 @@ int main(int argc, char** argv) {
                "Canonical parsing of k-mers. This option changes the parsing and results in a "
                "trade-off between index space and lookup time.",
                "--canonical-parsing", true);
-    parser.add("weighted", "Also store the weights in compressed format.", "--weighted", true);
     parser.add("check", "Check correctness after construction.", "--check", true);
-    parser.add("bench", "Run benchmark after construction.", "--bench", true);
     parser.add("verbose", "Verbose output during construction.", "--verbose", true);
 
     if (!parser.parse()) return 1;
@@ -66,7 +64,6 @@ int main(int argc, char** argv) {
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
     if (parser.parsed("c")) build_config.c = parser.get<double>("c");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
-    build_config.weighted = parser.get<bool>("weighted");
     build_config.verbose = parser.get<bool>("verbose");
     if (parser.parsed("tmp_dirname")) {
         build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
@@ -78,19 +75,8 @@ int main(int argc, char** argv) {
     assert(dict.k() == k);
 
     bool check = parser.get<bool>("check");
-    if (check) {
-        check_correctness_lookup_access(dict, input_filename);
-        check_correctness_navigational_kmer_query(dict, input_filename);
-        check_correctness_navigational_contig_query(dict);
-        if (build_config.weighted) check_correctness_weights(dict, input_filename);
-        check_correctness_iterator(dict);
-    }
-    bool bench = parser.get<bool>("bench");
-    if (bench) {
-        perf_test_lookup_access(dict);
-        if (dict.weighted()) perf_test_lookup_weight(dict);
-        perf_test_iterator(dict);
-    }
+    if (check) check_correctness_membership(dict, input_filename);
+
     if (parser.parsed("output_filename")) {
         auto output_filename = parser.get<std::string>("output_filename");
         essentials::logger("saving data structure to disk...");
