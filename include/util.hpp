@@ -31,9 +31,16 @@ typedef pthash::single_phf<base_hasher_type,               // base hasher
 
 struct streaming_query_report {
     streaming_query_report()
-        : num_kmers(0), num_positive_kmers(0), num_searches(0), num_extensions(0) {}
+        : num_kmers(0)
+        , num_positive_kmers(0)
+        , num_reads(0)
+        , num_positive_reads(0)
+        , num_searches(0)
+        , num_extensions(0) {}
     uint64_t num_kmers;
     uint64_t num_positive_kmers;
+    uint64_t num_reads;
+    uint64_t num_positive_reads;
     uint64_t num_searches;
     uint64_t num_extensions;
 };

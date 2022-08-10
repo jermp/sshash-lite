@@ -26,8 +26,8 @@ struct dictionary {
     /* Streaming queries. */
     friend struct streaming_query_canonical_parsing;
     friend struct streaming_query_regular_parsing;
-    streaming_query_report streaming_query_from_file(std::string const& filename,
-                                                     bool multiline) const;
+    streaming_query_report streaming_query_from_file(std::string const& filename, bool multiline,
+                                                     float threshold) const;
 
     uint64_t num_bits() const;
     void print_info() const;

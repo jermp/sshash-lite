@@ -160,7 +160,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         uint64_t upper = 2 * lower;
         uint64_t num_bits_per_pos = min_log2_size + 1;
 
-        /* tmp storage for keys and super_kmer_ids ******/
+        /* tmp storage for kmers and super_kmer_ids ******/
         std::vector<key> keys_in_partition;
         keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
         pthash::compact_vector::builder cvb_positions;
@@ -224,7 +224,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                     keys_in_partition.push_back({kmer, super_kmer_id});
                     bv_it.eat(2);
                 }
-                assert(super_kmer_id < (1ULL << cvb_positions.width()));
+                assert(super_kmer_id < (1ULL << num_bits_per_pos));
                 ++super_kmer_id;
             }
         }

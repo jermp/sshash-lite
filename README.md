@@ -4,6 +4,10 @@
 SSHash-Lite
 ===========
 
+A membership-only version of [SSHash](https://github.com/jermp/sshash). It works with files with duplicate k-mers too.
+
+TODO
+
 <!-- This is a compressed dictionary data structure for k-mers
 (strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 

@@ -16,6 +16,10 @@ int main(int argc, char** argv) {
                "Use this option if more the one DNA line must be parsed after each header."
                " Only valid for FASTA files (not FASTQ).",
                "--multiline", true);
+    parser.add("threshold",
+               "A real value in [0,1] indicating the requested minimal fraction of positive k-mers "
+               "per read. Default value is 0.0.",
+               "-t", false);
     parser.add("print_index_info", "Print index information.", "--print-index-info", true);
     if (!parser.parse()) return 1;
 
@@ -30,11 +34,13 @@ int main(int argc, char** argv) {
     if (parser.get<bool>("print_index_info")) dict.print_info();
 
     bool multiline = parser.get<bool>("multiline");
+    float threshold = 0.0;
+    if (parser.parsed("threshold")) threshold = parser.get<float>("threshold");
 
     essentials::logger("performing queries from file '" + query_filename + "'...");
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::microseconds> t;
     t.start();
-    auto report = dict.streaming_query_from_file(query_filename, multiline);
+    auto report = dict.streaming_query_from_file(query_filename, multiline, threshold);
     t.stop();
     essentials::logger("DONE");
 
@@ -42,6 +48,9 @@ int main(int argc, char** argv) {
     std::cout << "num_kmers = " << report.num_kmers << std::endl;
     std::cout << "num_positive_kmers = " << report.num_positive_kmers << " ("
               << (report.num_positive_kmers * 100.0) / report.num_kmers << "%)" << std::endl;
+    std::cout << "num_reads = " << report.num_reads << std::endl;
+    std::cout << "num_positive_reads (" << threshold << ") = " << report.num_positive_reads << " ("
+              << (report.num_positive_reads * 100.0) / report.num_reads << "%)" << std::endl;
     std::cout << "num_searches = " << report.num_searches << "/" << report.num_positive_kmers
               << " (" << (report.num_searches * 100.0) / report.num_positive_kmers << "%)"
               << std::endl;
