@@ -9,10 +9,19 @@ namespace sshash {
 struct buckets {
     uint64_t offset_to_contig_end(uint64_t offset) const {
         auto [pos, contig_end] = pieces.next_geq(offset);
+
         /* The following two facts hold. */
         assert(pieces.access(pos) == contig_end);
         assert(contig_end >= offset);
-        (void)pos;
+
+        if (contig_end == offset) {
+            assert(pos + 1 < pieces.size());
+            contig_end = pieces.access(pos + 1);
+        }
+
+        /* Now, the following fact holds. */
+        assert(offset < contig_end);
+
         return contig_end;
     }
 
