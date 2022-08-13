@@ -37,28 +37,17 @@ if (UNIX)
 
 endif()
 
-set(Z_LIB_SOURCES
+# create a static lib
+add_library(sshashlite_static STATIC
   include/gz/zip_stream.cpp
-)
-
-set(SSHASH_SOURCES
   include/dictionary.cpp
   include/info.cpp
-)
-
-# Create a static lib
-add_library(sshashlite_static STATIC
-  ${Z_LIB_SOURCES}
-  ${SSHASH_SOURCES}
   include/builder/build.cpp
 )
 
 # build with the lib
-add_executable(build src/build.cpp)
-target_link_libraries(build
+add_executable(sshash-lite src/sshash-lite.cpp)
+target_link_libraries(sshash-lite
   sshashlite_static
   z
 )
-
-add_executable(query src/query.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
-target_link_libraries(query z)
