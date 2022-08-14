@@ -140,20 +140,21 @@ int query(int argc, char** argv) {
     return 0;
 }
 
-void help() {
+int help() {
     std::cerr << "Supported commands are:\n";
     std::cerr << "sshash-lite build\n";
     std::cerr << "sshash-lite query\n";
+    return 1;
 }
 
 int main(int argc, char** argv) {
+    if (argc < 2) return help();
     auto cmd = std::string(argv[1]);
     if (cmd == "build") {
         return build(argc - 1, argv + 1);
     } else if (cmd == "query") {
         return query(argc - 1, argv + 1);
     }
-    std::cerr << "Unsupported command '" << cmd << "'.";
-    help();
-    return 1;
+    std::cerr << "Unsupported command '" << cmd << "'." << std::endl;
+    return help();
 }
