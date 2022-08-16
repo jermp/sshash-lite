@@ -6,6 +6,8 @@ A membership-only version of [SSHash](https://github.com/jermp/sshash). It works
 For instructions on how to compile the code,
 build the dictionaries, and data format, please refer to [this](https://github.com/jermp/sshash) repository.
 
+#### NOTE: Input files are expected to have one DNA sequence per line. If a sequence spans multiple lines (e.g., multi-fasta), the lines should be concatenated before indexing.
+
 ### Example usage
 
 Build an index over the E. Coli matchtigs with

@@ -12,19 +12,17 @@ bool check_correctness_membership(std::istream& is, dictionary const& dict) {
     uint64_t k = dict.k();
     uint64_t n = dict.size();
 
-    std::string line;
-    uint64_t pos = 0;
-    uint64_t num_kmers = 0;
-
     std::string kmer_str(k, 0);
     std::cout << "checking correctness of membership..." << std::endl;
 
-    while (appendline(is, line)) {
-        if (line.size() == pos || line[pos] == '>' || line[pos] == ';') {
-            // comment or empty line restart the term buffer
-            line.clear();
-            continue;
-        }
+    std::string line;
+    uint64_t num_kmers = 0;
+
+    while (!is.eof()) {
+        std::getline(is, line);  // header sequence
+        std::getline(is, line);  // DNA sequence
+        if (line.size() < k) continue;
+
         for (uint64_t i = 0; i + k <= line.size(); ++i) {
             assert(util::is_valid(line.data() + i, k));
             uint64_t uint64_kmer = util::string_to_uint64_no_reverse(line.data() + i, k);
@@ -47,13 +45,6 @@ bool check_correctness_membership(std::istream& is, dictionary const& dict) {
             assert(answer);
 
             ++num_kmers;
-        }
-        if (line.size() > k - 1) {
-            std::copy(line.data() + line.size() - (k - 1), line.data() + line.size(), line.data());
-            line.resize(k - 1);
-            pos = line.size();
-        } else {
-            pos = 0;
         }
     }
     std::cout << "checked " << num_kmers << " kmers" << std::endl;
