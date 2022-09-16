@@ -4,9 +4,7 @@ SSHash-Lite
 A membership-only version of [SSHash](https://github.com/jermp/sshash). It works with files with duplicate k-mers too.
 
 For instructions on how to compile the code,
-build the dictionaries, and data format, please refer to [this](https://github.com/jermp/sshash) repository.
-
-#### NOTE: Input files are expected to have one DNA sequence per line. If a sequence spans multiple lines (e.g., multi-fasta), the lines should be concatenated before indexing.
+build the dictionaries, and data format, please refer to the instructions [here](https://github.com/jermp/sshash).
 
 ### Example usage
 
@@ -19,6 +17,8 @@ and query with
 	./sshash-lite query ecoli-matchtigs.sshash ../data/queries/SRR9873306_1.10K.fastq.gz -t 0.8
 
 where a query read is considered as positive if at least 80% of the k-mers are positive.
+
+##### NOTE: Input files are expected to have one DNA sequence per line. If a sequence spans multiple lines (e.g., multi-fasta), the lines should be concatenated before indexing.
 
 ### Enable verbose output
 
