@@ -8,7 +8,7 @@ build the dictionaries, and data format, please refer to the instructions [here]
 
 ### Example usage
 
-Build an index over the E. Coli matchtigs with
+Build an index over the E. Coli [matchtigs](https://github.com/algbio/matchtigs) with
 
 	./sshash-lite build ../data/ecoli_matchtigs_k31.fa.gz 31 15 -d tmp --check -o ecoli-matchtigs.sshash
 
@@ -18,7 +18,7 @@ and query with
 
 where a query read is considered as positive if at least 80% of the k-mers are positive.
 
-##### NOTE: Input files are expected to have one DNA sequence per line. If a sequence spans multiple lines (e.g., multi-fasta), the lines should be concatenated before indexing.
+**NOTE**: Input files are expected to have **one DNA sequence per line**. If a sequence spans multiple lines (e.g., multi-fasta), the lines should be concatenated before indexing.
 
 ### Enable verbose output
 
