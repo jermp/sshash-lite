@@ -20,6 +20,10 @@ where a query read is considered as positive if at least 80% of the k-mers are p
 
 **NOTE**: Input files are expected to have **one DNA sequence per line**. If a sequence spans multiple lines (e.g., multi-fasta), the lines should be concatenated before indexing.
 
+To do so, the script `script/concat_lines.py` can be used:
+
+	python3 script/concat_lines.py <multi_fasta>.fa.gz > output
+
 ### Enable verbose output
 
 By default we print a summary report for the whole query file.
