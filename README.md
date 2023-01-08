@@ -1,3 +1,5 @@
+[![CodeQL](https://github.com/jermp/sshash-lite/actions/workflows/codeql.yml/badge.svg)](https://github.com/jermp/sshash-lite/actions/workflows/codeql.yml)
+
 SSHash-Lite
 ===========
 
