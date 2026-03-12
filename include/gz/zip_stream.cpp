@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cstring>
-#include <cstdint>
 
 #ifdef WIN32 /* Window 95 & Windows NT */
 #define OS_CODE 0x0b
