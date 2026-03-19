@@ -5,6 +5,8 @@
 #include <fstream>
 #include <cmath>  // for std::ceil on linux
 
+#include <memory>
+
 #include "../external/pthash/include/pthash.hpp"
 
 namespace sshash {
